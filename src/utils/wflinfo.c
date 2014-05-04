@@ -228,7 +228,8 @@ struct options {
     /// @brief One of `WAFFLE_CONTEXT_PROFILE_*` or `WAFFLE_NONE`.
     int context_profile;
 
-    int context_version;
+    int context_major;
+    int context_minor;
 
     bool verbose;
 
@@ -309,7 +310,8 @@ parse_args(int argc, char *argv[], struct options *opts)
 
     // Set options to default values.
     opts->context_profile = WAFFLE_NONE;
-    opts->context_version = WAFFLE_DONT_CARE;
+    opts->context_major = WAFFLE_DONT_CARE;
+    opts->context_minor = WAFFLE_DONT_CARE;
 
     // prevent getopt_long from printing an error message
     opterr = 0;
@@ -348,7 +350,8 @@ parse_args(int argc, char *argv[], struct options *opts)
                     usage_error_printf("'%s' is not a valid OpenGL version",
                                        optarg);
                 }
-                opts->context_version = 10 * major + minor;
+                opts->context_major = major;
+                opts->context_minor = minor;
                 break;
             }
             case OPT_PROFILE:
@@ -620,10 +623,11 @@ struct wflinfo_config_attrs {
     /// @brief One of `WAFFLE_CONTEXT_PROFILE_*` or `WAFFLE_NONE`.
     enum waffle_enum profile;
 
-    /// @brief The context version times 10.
-    ///
-    /// For example, set this to 32 if you want a 3.2 context.
-    int32_t version;
+    /// @brief The version major number.
+    int32_t major;
+
+    /// @brief The version minor number.
+    int32_t minor;
 
     /// @brief Create a forward-compatible context.
     bool forward_compat;
@@ -653,11 +657,11 @@ wflinfo_try_create_context(struct waffle_display *dpy,
         config_attrib_list[i++] = attrs.profile;
     }
 
-    if (attrs.version != WAFFLE_DONT_CARE) {
+    if (attrs.major != WAFFLE_DONT_CARE && attrs.minor != WAFFLE_DONT_CARE) {
         config_attrib_list[i++] = WAFFLE_CONTEXT_MAJOR_VERSION;
-        config_attrib_list[i++] = attrs.version / 10;
+        config_attrib_list[i++] = attrs.major;
         config_attrib_list[i++] = WAFFLE_CONTEXT_MINOR_VERSION;
-        config_attrib_list[i++] = attrs.version % 10;
+        config_attrib_list[i++] = attrs.minor;
     }
 
     if (attrs.forward_compat) {
@@ -868,7 +872,8 @@ wflinfo_try_create_context_gl31(struct waffle_display *dpy,
     // a profile and later verify that the desired and actual profile
     // agree.
     const enum waffle_enum desired_profile = attrs.profile;
-    attrs.version = 31;
+    attrs.major = 3;
+    attrs.minor = 1;
     attrs.profile = WAFFLE_NONE;
     wflinfo_try_create_context(dpy, attrs, &ctx, &config,
                                exit_if_ctx_creation_fails);
@@ -915,7 +920,7 @@ wflinfo_create_context(struct waffle_display *dpy,
 
     if (attrs.api == WAFFLE_CONTEXT_OPENGL &&
         attrs.profile != WAFFLE_NONE &&
-        attrs.version == WAFFLE_DONT_CARE) {
+        attrs.major == WAFFLE_DONT_CARE) {
 
         // If the user requested OpenGL and a CORE or COMPAT profile,
         // but they didn't specify a version, then we'll try a set
@@ -925,7 +930,8 @@ wflinfo_create_context(struct waffle_display *dpy,
             { 32, 33, 40, 41, 42, 43, 44 };
 
         for (int i = ARRAY_SIZE(known_gl_profile_versions) - 1; i >= 0; i--) {
-            attrs.version = known_gl_profile_versions[i];
+            attrs.major = known_gl_profile_versions[i] / 10;
+            attrs.minor = known_gl_profile_versions[i] % 10;
             ok = wflinfo_try_create_context(dpy, attrs, out_ctx, out_config, false);
             if (ok) {
                 return;
@@ -943,7 +949,7 @@ wflinfo_create_context(struct waffle_display *dpy,
         error_printf("Wflinfo", "Failed to create context; Try choosing a "
                      "specific context version with --version");
     } else if (attrs.api == WAFFLE_CONTEXT_OPENGL &&
-               attrs.version == 31) {
+               (attrs.major == 3 && attrs.minor == 1)) {
         // The user requested a specific profile of an OpenGL 3.1 context.
         // Strictly speaking, an OpenGL 3.1 context has no profile, but let's
         // do what the user wants.
@@ -958,7 +964,8 @@ wflinfo_create_context(struct waffle_display *dpy,
                "  had the wrong profile.  Fallback to requesting an OpenGL >= 3.2\n"
                "  context, which is guaranteed to have the correct profile if\n"
                "  context creation succeeds.\n");
-        attrs.version = 32;
+        attrs.major = 3;
+        attrs.minor = 2;
         assert(attrs.profile == WAFFLE_CONTEXT_CORE_PROFILE ||
                attrs.profile == WAFFLE_CONTEXT_COMPATIBILITY_PROFILE);
         ok = wflinfo_try_create_context(dpy, attrs, out_ctx, out_config,
@@ -1033,7 +1040,8 @@ main(int argc, char **argv)
     const struct wflinfo_config_attrs config_attrs = {
         .api = opts.context_api,
         .profile = opts.context_profile,
-        .version = opts.context_version,
+        .major = opts.context_major,
+        .minor = opts.context_minor,
         .forward_compat = opts.context_forward_compatible,
         .debug = opts.context_debug,
     };
