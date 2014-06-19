@@ -385,12 +385,12 @@ gl_get_version(void)
 
     glGetIntegerv(GL_MAJOR_VERSION, &major_version);
     if (glGetError()) {
-        error_printf("Wflinfo", "glGetIntegerv(GL_MAJOR_VERSION) failed");
+        error_printf(wutils_utility_Name, "glGetIntegerv(GL_MAJOR_VERSION) failed");
     }
 
     glGetIntegerv(GL_MINOR_VERSION, &minor_version);
     if (glGetError()) {
-        error_printf("Wflinfo", "glGetIntegerv(GL_MINOR_VERSION) failed");
+        error_printf(wutils_utility_Name, "glGetIntegerv(GL_MINOR_VERSION) failed");
     }
     return 10 * major_version + minor_version;
 }
@@ -404,7 +404,7 @@ gl_has_extension_GetString(const char *name)
 
     const uint8_t *exts_orig = glGetString(GL_EXTENSIONS);
     if (glGetError()) {
-        error_printf("Wflinfo", "glGetInteger(GL_EXTENSIONS) failed");
+        error_printf(wutils_utility_Name, "glGetInteger(GL_EXTENSIONS) failed");
     }
 
     memcpy(exts, exts_orig, buf_len);
@@ -430,13 +430,13 @@ gl_has_extension_GetStringi(const char *name)
 
     glGetIntegerv(GL_NUM_EXTENSIONS, &num_exts);
     if (glGetError()) {
-        error_printf("Wflinfo", "glGetIntegerv(GL_NUM_EXTENSIONS) failed");
+        error_printf(wutils_utility_Name, "glGetIntegerv(GL_NUM_EXTENSIONS) failed");
     }
 
     for (int i = 0; i < num_exts; i++) {
         const uint8_t *ext = glGetStringi(GL_EXTENSIONS, i);
         if (!ext || glGetError()) {
-            error_printf("Wflinfo", "glGetStringi(GL_EXTENSIONS) failed");
+            error_printf(wutils_utility_Name, "glGetStringi(GL_EXTENSIONS) failed");
         } else if (strneq((const char*) ext, name, max_ext_len)) {
             return true;
         }
@@ -476,14 +476,14 @@ gl_get_profile(void)
         uint32_t profile_mask = 0;
         glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile_mask);
         if (glGetError()) {
-            error_printf("Wflinfo", "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
+            error_printf(wutils_utility_Name, "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
                         "failed");
         } else if (profile_mask & GL_CONTEXT_CORE_PROFILE_BIT) {
             return WAFFLE_CONTEXT_CORE_PROFILE;
         } else if (profile_mask & GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) {
             return WAFFLE_CONTEXT_COMPATIBILITY_PROFILE;
         } else {
-            error_printf("Wflinfo", "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
+            error_printf(wutils_utility_Name, "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
                          "return a mask with no profile bit: 0x%x",
                          profile_mask);
         }
@@ -506,7 +506,7 @@ gl_get_profile(void)
 /// If a specific profile of OpenGL 3.1 is requested, then this function tries
 /// to honor the intent of that request even though, strictly speaking, an
 /// OpenGL 3.1 context has no profile.  (See gl_get_profile() for a description
-/// of how wflinfo determines the profile of a context). If context creation
+/// of how wutils determines the profile of a context). If context creation
 /// succeeds but its profile is incorrect, then return false.
 ///
 /// On failure, @a out_ctx and @out_config remain unmodified.
@@ -600,7 +600,7 @@ wutils_create_context(struct waffle_display *dpy,
             return;
         }
 
-        error_printf("Wflinfo", "Failed to create context; Try choosing a "
+        error_printf(wutils_utility_Name, "Failed to create context; Try choosing a "
                      "specific context version with --version");
     } else if (attrs.api == WAFFLE_CONTEXT_OPENGL &&
                attrs.major == 3 &&
@@ -615,10 +615,12 @@ wutils_create_context(struct waffle_display *dpy,
             return;
         }
 
-        printf("Wflinfo warn: Succesfully requested an OpenGL 3.1 context, but returned\n"
-               "Wflinfo warn: context had the wrong profile.  Fallback to requesting an\n"
-               "Wflinfo warn: OpenGL 3.2 context, which is guaranteed to have the correct\n"
-               "Wflinfo warn: profile if context creation succeeds.\n");
+        printf("%s warn: Succesfully requested an OpenGL 3.1 context, but returned\n"
+               "%s warn: context had the wrong profile.  Fallback to requesting an\n"
+               "%s warn: OpenGL 3.2 context, which is guaranteed to have the correct\n"
+               "%s warn: profile if context creation succeeds.\n",
+               wutils_utility_Name, wutils_utility_Name, wutils_utility_Name,
+               wutils_utility_Name);
         attrs.major = 3;
         attrs.minor = 2;
         assert(attrs.profile == WAFFLE_CONTEXT_CORE_PROFILE ||
@@ -629,7 +631,7 @@ wutils_create_context(struct waffle_display *dpy,
             return;
         }
 
-        error_printf("Wflinfo", "Failed to create an OpenGL 3.1 or later "
+        error_printf(wutils_utility_Name, "Failed to create an OpenGL 3.1 or later "
                      "context with requested profile");
     } else {
         wutils_try_create_context(dpy, attrs, out_ctx, out_config,
