@@ -34,6 +34,9 @@
 #define WAFFLE_API_VERSION 0x0103
 #include "waffle.h"
 
+extern const char *wutils_utility_name;
+extern const char *wutils_utility_Name;
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 typedef float GLclampf;

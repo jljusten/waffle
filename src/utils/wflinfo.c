@@ -51,6 +51,9 @@ static void
 removeXcodeArgs(int *argc, char **argv);
 #endif
 
+const char *wutils_utility_name = "wflinfo";
+const char *wutils_utility_Name = "Wflinfo";
+
 static const char *usage_message =
     "Usage:\n"
     "    wflinfo <Required Parameters> [Options]\n"
