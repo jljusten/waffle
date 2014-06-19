@@ -35,3 +35,33 @@
 #include "waffle.h"
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+typedef float GLclampf;
+typedef unsigned int GLbitfield;
+typedef unsigned int GLint;
+typedef int GLsizei;
+typedef unsigned int GLenum;
+typedef void GLvoid;
+typedef unsigned char GLubyte;
+
+enum {
+    // Copied from <GL/gl*.h>.
+    GL_NO_ERROR = 0,
+
+    GL_CONTEXT_FLAGS = 0x821e,
+    GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT = 0x00000001,
+    GL_CONTEXT_FLAG_DEBUG_BIT              = 0x00000002,
+    GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT_ARB  = 0x00000004,
+
+    GL_VENDOR                              = 0x1F00,
+    GL_RENDERER                            = 0x1F01,
+    GL_VERSION                             = 0x1F02,
+    GL_EXTENSIONS                          = 0x1F03,
+    GL_NUM_EXTENSIONS                      = 0x821D,
+};
+
+#define GL_MAJOR_VERSION                  0x821B
+#define GL_MINOR_VERSION                  0x821C
+#define GL_CONTEXT_PROFILE_MASK           0x9126
+#define GL_CONTEXT_CORE_PROFILE_BIT       0x00000001
+#define GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
