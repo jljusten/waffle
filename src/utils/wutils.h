@@ -30,6 +30,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define WAFFLE_API_VERSION 0x0103
 #include "waffle.h"
@@ -88,3 +90,35 @@ enum_map_translate_str(
 const char *
 enum_map_to_str(const struct enum_map *self,
                 int val);
+
+/// @brief Command line options.
+struct options {
+    /// @brief One of `WAFFLE_PLATFORM_*`.
+    int platform;
+
+    /// @brief One of `WAFFLE_CONTEXT_OPENGL_*`.
+    int context_api;
+
+    /// @brief One of `WAFFLE_CONTEXT_PROFILE_*` or `WAFFLE_NONE`.
+    int context_profile;
+
+    int context_major;
+    int context_minor;
+
+    bool verbose;
+
+    bool context_forward_compatible;
+    bool context_debug;
+
+    /// @brief One of `WAFFLE_DL_*`.
+    int dl;
+};
+
+void __attribute__((noreturn))
+usage_error_printf(const char *fmt, ...);
+
+void __attribute__((noreturn))
+write_usage_and_exit(FILE *f, int exit_code);
+
+bool
+parse_args(int argc, char *argv[], struct options *opts);

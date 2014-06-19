@@ -27,7 +27,13 @@
 /// @brief Common util definitions and functions
 
 #include "wutils.h"
+#include <getopt.h>
 #include <string.h>
+
+#ifdef __APPLE__
+static void
+removeXcodeArgs(int *argc, char **argv);
+#endif
 
 GLenum (*glGetError)(void);
 void (*glGetIntegerv)(GLenum pname, GLint *params);
@@ -85,3 +91,176 @@ enum_map_to_str(const struct enum_map *self,
 
     return NULL;
 }
+
+enum {
+    OPT_PLATFORM = 'p',
+    OPT_API = 'a',
+    OPT_VERSION = 'V',
+    OPT_PROFILE,
+    OPT_VERBOSE = 'v',
+    OPT_DEBUG_CONTEXT,
+    OPT_FORWARD_COMPATIBLE,
+    OPT_HELP = 'h',
+};
+
+static const struct option get_opts[] = {
+    { .name = "platform",       .has_arg = required_argument,     .val = OPT_PLATFORM },
+    { .name = "api",            .has_arg = required_argument,     .val = OPT_API },
+    { .name = "version",        .has_arg = required_argument,     .val = OPT_VERSION },
+    { .name = "profile",        .has_arg = required_argument,     .val = OPT_PROFILE },
+    { .name = "verbose",        .has_arg = no_argument,           .val = OPT_VERBOSE },
+    { .name = "debug-context",  .has_arg = no_argument,           .val = OPT_DEBUG_CONTEXT },
+    { .name = "forward-compatible", .has_arg = no_argument,       .val = OPT_FORWARD_COMPATIBLE },
+    { .name = "help",           .has_arg = no_argument,           .val = OPT_HELP },
+    { 0 },
+};
+
+/// @return true on success.
+bool
+parse_args(int argc, char *argv[], struct options *opts)
+{
+    bool ok;
+    bool loop_get_opt = true;
+
+#ifdef __APPLE__
+    removeXcodeArgs(&argc, argv);
+#endif
+
+    // Set options to default values.
+    opts->context_profile = WAFFLE_NONE;
+    opts->context_major = WAFFLE_DONT_CARE;
+    opts->context_minor = WAFFLE_DONT_CARE;
+
+    // prevent getopt_long from printing an error message
+    opterr = 0;
+
+    while (loop_get_opt) {
+        int opt = getopt_long(argc, argv, "a:hp:vV:", get_opts, NULL);
+        switch (opt) {
+            case -1:
+                loop_get_opt = false;
+                break;
+            case '?':
+                goto error_unrecognized_arg;
+            case OPT_PLATFORM:
+                ok = enum_map_translate_str(platform_map, optarg,
+                                            &opts->platform);
+                if (!ok) {
+                    usage_error_printf("'%s' is not a valid platform",
+                                       optarg);
+                }
+                break;
+            case OPT_API:
+                ok = enum_map_translate_str(context_api_map, optarg,
+                                            &opts->context_api);
+                if (!ok) {
+                    usage_error_printf("'%s' is not a valid API for an OpenGL "
+                                       "context", optarg);
+                }
+                break;
+            case OPT_VERSION: {
+                int major;
+                int minor;
+                int match_count;
+
+                match_count = sscanf(optarg, "%d.%d", &major, &minor);
+                if (match_count != 2 || major < 0 || minor < 0) {
+                    usage_error_printf("'%s' is not a valid OpenGL version",
+                                       optarg);
+                }
+                opts->context_major = major;
+                opts->context_minor = minor;
+                break;
+            }
+            case OPT_PROFILE:
+                if (strcmp(optarg, "none") == 0) {
+                    opts->context_profile = WAFFLE_NONE;
+                } else if (strcmp(optarg, "core") == 0) {
+                    opts->context_profile = WAFFLE_CONTEXT_CORE_PROFILE;
+                } else if (strcmp(optarg, "compat") == 0) {
+                    opts->context_profile = WAFFLE_CONTEXT_COMPATIBILITY_PROFILE;
+                } else {
+                    usage_error_printf("'%s' is not a valid OpenGL profile",
+                                       optarg);
+                }
+                break;
+            case OPT_VERBOSE:
+                opts->verbose = true;
+                break;
+            case OPT_FORWARD_COMPATIBLE:
+                opts->context_forward_compatible = true;
+                break;
+            case OPT_DEBUG_CONTEXT:
+                opts->context_debug = true;
+                break;
+            case OPT_HELP:
+                write_usage_and_exit(stdout, EXIT_SUCCESS);
+                break;
+            default:
+                abort();
+                loop_get_opt = false;
+                break;
+        }
+    }
+
+    if (optind < argc) {
+        goto error_unrecognized_arg;
+    }
+
+    if (!opts->platform) {
+        usage_error_printf("--platform is required");
+    }
+
+    if (!opts->context_api) {
+        usage_error_printf("--api is required");
+    }
+
+    // Set dl.
+    switch (opts->context_api) {
+        case WAFFLE_CONTEXT_OPENGL:     opts->dl = WAFFLE_DL_OPENGL;      break;
+        case WAFFLE_CONTEXT_OPENGL_ES1: opts->dl = WAFFLE_DL_OPENGL_ES1;  break;
+        case WAFFLE_CONTEXT_OPENGL_ES2: opts->dl = WAFFLE_DL_OPENGL_ES2;  break;
+        case WAFFLE_CONTEXT_OPENGL_ES3: opts->dl = WAFFLE_DL_OPENGL_ES3;  break;
+        default:
+            abort();
+            break;
+    }
+
+    return true;
+
+error_unrecognized_arg:
+    if (optarg)
+        usage_error_printf("unrecognized option '%s'", optarg);
+    else if (optopt)
+        usage_error_printf("unrecognized option '-%c'", optopt);
+    else
+        usage_error_printf("unrecognized option");
+}
+
+#ifdef __APPLE__
+
+static void
+removeArg(int index, int *argc, char **argv)
+{
+    --*argc;
+    for (; index < *argc; ++index)
+        argv[index] = argv[index + 1];
+}
+
+static void
+removeXcodeArgs(int *argc, char **argv)
+{
+    // Xcode sometimes adds additional arguments.
+    for (int i = 1; i < *argc; )
+    {
+        if (strcmp(argv[i], "-NSDocumentRevisionsDebugMode") == 0 ||
+            strcmp(argv[i], "-ApplePersistenceIgnoreState" ) == 0)
+        {
+            removeArg(i, argc, argv);
+            removeArg(i, argc, argv);
+        } else
+            ++i;
+    }
+}
+
+#endif // __APPLE__
