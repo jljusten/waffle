@@ -258,6 +258,32 @@ error_unrecognized_arg:
         usage_error_printf("unrecognized option");
 }
 
+void __attribute__((noreturn))
+error_waffle(void)
+{
+    const struct waffle_error_info *info = waffle_error_get_info();
+    const char *code = waffle_error_to_string(info->code);
+
+    if (info->message_length > 0)
+        error_printf("Waffle", "0x%x %s: %s", info->code, code, info->message);
+    else
+        error_printf("Waffle", "0x%x %s", info->code, code);
+}
+
+void __attribute__((noreturn))
+error_printf(const char *module, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    fprintf(stderr, "%s error: ", module);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+
+    exit(EXIT_FAILURE);
+}
+
 #ifdef __APPLE__
 
 static NSAutoreleasePool *pool;
