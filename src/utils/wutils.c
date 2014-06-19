@@ -85,3 +85,20 @@ enum_map_to_str(const struct enum_map *self,
 
     return NULL;
 }
+
+void __attribute__((noreturn))
+usage_error_printf(const char *fmt, ...)
+{
+    fprintf(stderr, "Wflinfo usage error: ");
+
+    if (fmt) {
+        va_list ap;
+        va_start(ap, fmt);
+        vfprintf(stderr, fmt, ap);
+        va_end(ap);
+        fprintf(stderr, " ");
+    }
+
+    fprintf(stderr, "(see wflinfo --help)\n");
+    exit(EXIT_FAILURE);
+}
