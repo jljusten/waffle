@@ -31,6 +31,9 @@
 #include <string.h>
 
 #ifdef __APPLE__
+#    import <Foundation/NSAutoreleasePool.h>
+#    import <Appkit/NSApplication.h>
+
 static void
 removeXcodeArgs(int *argc, char **argv);
 #endif
@@ -238,6 +241,33 @@ error_unrecognized_arg:
 }
 
 #ifdef __APPLE__
+
+static NSAutoreleasePool *pool;
+
+void
+cocoa_init(void)
+{
+    // From the NSApplication Class Reference:
+    //     [...] if you do need to use Cocoa classes within the main()
+    //     function itself (other than to load nib files or to instantiate
+    //     NSApplication), you should create an autorelease pool before using
+    //     the classes and then release the pool when you’re done.
+    pool = [[NSAutoreleasePool alloc] init];
+
+    // From the NSApplication Class Reference:
+    //     The sharedApplication class method initializes the display
+    //     environment and connects your program to the window server and the
+    //     display server.
+    //
+    // It also creates the singleton NSApp if it does not yet exist.
+    [NSApplication sharedApplication];
+}
+
+void
+cocoa_finish(void)
+{
+    [pool drain];
+}
 
 static void
 removeArg(int index, int *argc, char **argv)

@@ -42,11 +42,6 @@
 #include <string.h>
 #include "wutils.h"
 
-#ifdef __APPLE__
-#    import <Foundation/NSAutoreleasePool.h>
-#    import <Appkit/NSApplication.h>
-#endif
-
 static const char *usage_message =
     "Usage:\n"
     "    wflinfo <Required Parameters> [Options]\n"
@@ -293,37 +288,6 @@ print_wflinfo(const struct options *opts)
 
     return true;
 }
-
-#ifdef __APPLE__
-
-static NSAutoreleasePool *pool;
-
-static void
-cocoa_init(void)
-{
-    // From the NSApplication Class Reference:
-    //     [...] if you do need to use Cocoa classes within the main()
-    //     function itself (other than to load nib files or to instantiate
-    //     NSApplication), you should create an autorelease pool before using
-    //     the classes and then release the pool when you’re done.
-    pool = [[NSAutoreleasePool alloc] init];
-
-    // From the NSApplication Class Reference:
-    //     The sharedApplication class method initializes the display
-    //     environment and connects your program to the window server and the
-    //     display server.
-    //
-    // It also creates the singleton NSApp if it does not yet exist.
-    [NSApplication sharedApplication];
-}
-
-static void
-cocoa_finish(void)
-{
-    [pool drain];
-}
-
-#endif // __APPLE__
 
 /// @brief Attributes for waffle_choose_config().
 struct wflinfo_config_attrs {

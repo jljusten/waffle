@@ -122,3 +122,13 @@ write_usage_and_exit(FILE *f, int exit_code);
 
 bool
 parse_args(int argc, char *argv[], struct options *opts);
+
+#ifdef __APPLE__
+
+void
+cocoa_init(void);
+
+void
+cocoa_finish(void);
+
+#endif // __APPLE__
