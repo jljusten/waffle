@@ -38,10 +38,10 @@
 #include <ctype.h>
 #include <getopt.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "wutils.h"
 
 #ifdef __APPLE__
 #    import <Foundation/NSAutoreleasePool.h>
@@ -50,8 +50,6 @@
 static void
 removeXcodeArgs(int *argc, char **argv);
 #endif
-
-#include "waffle.h"
 
 static const char *usage_message =
     "Usage:\n"
