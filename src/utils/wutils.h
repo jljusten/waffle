@@ -115,6 +115,12 @@ struct options {
 };
 
 void __attribute__((noreturn))
+error_waffle(void);
+
+void __attribute__((noreturn))
+error_printf(const char *module, const char *fmt, ...);
+
+void __attribute__((noreturn))
 usage_error_printf(const char *fmt, ...);
 
 void __attribute__((noreturn))

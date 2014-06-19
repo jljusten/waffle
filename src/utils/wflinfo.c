@@ -89,20 +89,6 @@ strneq(const char *a, const char *b, size_t n)
     return strncmp(a, b, n) == 0;
 }
 
-static void __attribute__((noreturn))
-error_printf(const char *module, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    fprintf(stderr, "%s error: ", module);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    va_end(ap);
-
-    exit(EXIT_FAILURE);
-}
-
 void __attribute__((noreturn))
 write_usage_and_exit(FILE *f, int exit_code)
 {
@@ -125,18 +111,6 @@ usage_error_printf(const char *fmt, ...)
 
     fprintf(stderr, "(see wflinfo --help)\n");
     exit(EXIT_FAILURE);
-}
-
-static void
-error_waffle(void)
-{
-    const struct waffle_error_info *info = waffle_error_get_info();
-    const char *code = waffle_error_to_string(info->code);
-
-    if (info->message_length > 0)
-        error_printf("Waffle", "0x%x %s: %s", info->code, code, info->message);
-    else
-        error_printf("Waffle", "0x%x %s", info->code, code);
 }
 
 static void
