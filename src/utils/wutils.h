@@ -33,3 +33,5 @@
 
 #define WAFFLE_API_VERSION 0x0103
 #include "waffle.h"
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))

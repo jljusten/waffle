@@ -905,8 +905,6 @@ success:
     return true;
 }
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-
 /// Exit on failure.
 static void
 wflinfo_create_context(struct waffle_display *dpy,
