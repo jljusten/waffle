@@ -93,12 +93,6 @@ write_usage_and_exit(FILE *f, int exit_code)
     exit(exit_code);
 }
 
-static void
-error_get_gl_symbol(const char *name)
-{
-    error_printf("Wflinfo", "failed to get function pointer for %s", name);
-}
-
 #define WINDOW_WIDTH  320
 #define WINDOW_HEIGHT 240
 

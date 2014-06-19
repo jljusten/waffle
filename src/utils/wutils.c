@@ -285,6 +285,12 @@ error_printf(const char *module, const char *fmt, ...)
     exit(EXIT_FAILURE);
 }
 
+void
+error_get_gl_symbol(const char *name)
+{
+    error_printf(wutils_utility_Name, "failed to get function pointer for %s", name);
+}
+
 static bool
 strneq(const char *a, const char *b, size_t n)
 {

@@ -129,6 +129,9 @@ usage_error_printf(const char *fmt, ...);
 void __attribute__((noreturn))
 write_usage_and_exit(FILE *f, int exit_code);
 
+void
+error_get_gl_symbol(const char *name);
+
 bool
 parse_args(int argc, char *argv[], struct options *opts);
 
