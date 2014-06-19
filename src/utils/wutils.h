@@ -129,6 +129,33 @@ write_usage_and_exit(FILE *f, int exit_code);
 bool
 parse_args(int argc, char *argv[], struct options *opts);
 
+/// @brief Attributes for waffle_choose_config().
+struct wflinfo_config_attrs {
+    /// @brief One of `WAFFLE_CONTEXT_OPENGL_*`.
+    enum waffle_enum api;
+
+    /// @brief One of `WAFFLE_CONTEXT_PROFILE_*` or `WAFFLE_NONE`.
+    enum waffle_enum profile;
+
+    /// @brief The version major number.
+    int32_t major;
+
+    /// @brief The version minor number.
+    int32_t minor;
+
+    /// @brief Create a forward-compatible context.
+    bool forward_compat;
+
+    /// @brief Create a debug context.
+    bool debug;
+};
+
+void
+wutils_create_context(struct waffle_display *dpy,
+                      struct wflinfo_config_attrs attrs,
+                      struct waffle_context **out_ctx,
+                      struct waffle_config **out_config);
+
 #ifdef __APPLE__
 
 void

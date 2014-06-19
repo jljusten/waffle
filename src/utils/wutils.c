@@ -27,6 +27,7 @@
 /// @brief Common util definitions and functions
 
 #include "wutils.h"
+#include <assert.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <string.h>
@@ -265,6 +266,358 @@ error_printf(const char *module, const char *fmt, ...)
     va_end(ap);
 
     exit(EXIT_FAILURE);
+}
+
+static bool
+strneq(const char *a, const char *b, size_t n)
+{
+    return strncmp(a, b, n) == 0;
+}
+
+static bool
+wflinfo_try_create_context(struct waffle_display *dpy,
+                           struct wflinfo_config_attrs attrs,
+                           struct waffle_context **out_ctx,
+                           struct waffle_config **out_config,
+                           bool exit_on_fail)
+{
+    int i;
+    int32_t config_attrib_list[64];
+    struct waffle_context *ctx = NULL;
+    struct waffle_config *config = NULL;
+
+    i = 0;
+    config_attrib_list[i++] = WAFFLE_CONTEXT_API;
+    config_attrib_list[i++] = attrs.api;
+
+    if (attrs.profile != WAFFLE_DONT_CARE) {
+        config_attrib_list[i++] = WAFFLE_CONTEXT_PROFILE;
+        config_attrib_list[i++] = attrs.profile;
+    }
+
+    if (attrs.major != WAFFLE_DONT_CARE && attrs.minor != WAFFLE_DONT_CARE) {
+        config_attrib_list[i++] = WAFFLE_CONTEXT_MAJOR_VERSION;
+        config_attrib_list[i++] = attrs.major;
+        config_attrib_list[i++] = WAFFLE_CONTEXT_MINOR_VERSION;
+        config_attrib_list[i++] = attrs.minor;
+    }
+
+    if (attrs.forward_compat) {
+        config_attrib_list[i++] = WAFFLE_CONTEXT_FORWARD_COMPATIBLE;
+        config_attrib_list[i++] = true;
+    }
+
+    if (attrs.debug) {
+        config_attrib_list[i++] = WAFFLE_CONTEXT_DEBUG;
+        config_attrib_list[i++] = true;
+    }
+
+    static int32_t dont_care_attribs[] = {
+        WAFFLE_RED_SIZE,
+        WAFFLE_GREEN_SIZE,
+        WAFFLE_BLUE_SIZE,
+        WAFFLE_ALPHA_SIZE,
+        WAFFLE_DEPTH_SIZE,
+        WAFFLE_STENCIL_SIZE,
+        WAFFLE_DOUBLE_BUFFERED,
+    };
+    int dont_care_attribs_count =
+        sizeof(dont_care_attribs) / sizeof(dont_care_attribs[0]);
+
+    for (int j = 0; j < dont_care_attribs_count; j++) {
+        config_attrib_list[i++] = dont_care_attribs[j];
+        config_attrib_list[i++] = WAFFLE_DONT_CARE;
+    }
+
+    config_attrib_list[i++] = 0;
+
+    config = waffle_config_choose(dpy, config_attrib_list);
+    if (!config) {
+        goto fail;
+    }
+
+    ctx = waffle_context_create(config, NULL);
+    if (!ctx) {
+        goto fail;
+    }
+
+    *out_ctx = ctx;
+    *out_config = config;
+    return true;
+
+fail:
+    if (exit_on_fail) {
+        error_waffle();
+    }
+    if (ctx) {
+        waffle_context_destroy(ctx);
+    }
+    if (config) {
+        waffle_config_destroy(config);
+    }
+
+    return false;
+}
+
+/// @brief Return 10 * version of the current OpenGL context.
+static int
+gl_get_version(void)
+{
+    GLint major_version = 0;
+    GLint minor_version = 0;
+
+    glGetIntegerv(GL_MAJOR_VERSION, &major_version);
+    if (glGetError()) {
+        error_printf("Wflinfo", "glGetIntegerv(GL_MAJOR_VERSION) failed");
+    }
+
+    glGetIntegerv(GL_MINOR_VERSION, &minor_version);
+    if (glGetError()) {
+        error_printf("Wflinfo", "glGetIntegerv(GL_MINOR_VERSION) failed");
+    }
+    return 10 * major_version + minor_version;
+}
+
+/// @brief Check if current context has an extension using glGetString().
+static bool
+gl_has_extension_GetString(const char *name)
+{
+    const size_t buf_len = 4096;
+    char exts[buf_len];
+
+    const uint8_t *exts_orig = glGetString(GL_EXTENSIONS);
+    if (glGetError()) {
+        error_printf("Wflinfo", "glGetInteger(GL_EXTENSIONS) failed");
+    }
+
+    memcpy(exts, exts_orig, buf_len);
+    exts[buf_len - 1] = 0;
+
+    char *ext = strtok(exts, " ");
+    do {
+        if (strneq(ext, name, buf_len)) {
+            return true;
+        }
+        ext = strtok(NULL, " ");
+    } while (ext);
+
+    return false;
+}
+
+/// @brief Check if current context has an extension using glGetStringi().
+static bool
+gl_has_extension_GetStringi(const char *name)
+{
+    const size_t max_ext_len = 128;
+    uint32_t num_exts = 0;
+
+    glGetIntegerv(GL_NUM_EXTENSIONS, &num_exts);
+    if (glGetError()) {
+        error_printf("Wflinfo", "glGetIntegerv(GL_NUM_EXTENSIONS) failed");
+    }
+
+    for (int i = 0; i < num_exts; i++) {
+        const uint8_t *ext = glGetStringi(GL_EXTENSIONS, i);
+        if (!ext || glGetError()) {
+            error_printf("Wflinfo", "glGetStringi(GL_EXTENSIONS) failed");
+        } else if (strneq((const char*) ext, name, max_ext_len)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// @brief Check if current context has an extension.
+static bool
+gl_has_extension(const char *name)
+{
+    if (gl_get_version() >= 30) {
+        return gl_has_extension_GetStringi(name);
+    } else {
+        return gl_has_extension_GetString(name);
+    }
+}
+
+/// @brief Get the profile of a desktop OpenGL context.
+///
+/// Return one of WAFFLE_CONTEXT_CORE_PROFILE,
+/// WAFFLE_CONTEXT_COMPATIBILITY_PROFILE, or WAFFLE_NONE.
+///
+/// Even though an OpenGL 3.1 context strictly has no profile, according to
+/// this function a 3.1 context belongs to the core profile if and only if it
+/// lacks the GL_ARB_compatibility extension.
+///
+/// According to this function, a context has no profile if and only if its
+/// version is 3.0 or lower.
+static enum waffle_enum
+gl_get_profile(void)
+{
+    int version = gl_get_version();
+
+    if (version >= 32) {
+        uint32_t profile_mask = 0;
+        glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile_mask);
+        if (glGetError()) {
+            error_printf("Wflinfo", "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
+                        "failed");
+        } else if (profile_mask & GL_CONTEXT_CORE_PROFILE_BIT) {
+            return WAFFLE_CONTEXT_CORE_PROFILE;
+        } else if (profile_mask & GL_CONTEXT_COMPATIBILITY_PROFILE_BIT) {
+            return WAFFLE_CONTEXT_COMPATIBILITY_PROFILE;
+        } else {
+            error_printf("Wflinfo", "glGetIntegerv(GL_CONTEXT_PROFILE_MASK) "
+                         "return a mask with no profile bit: 0x%x",
+                         profile_mask);
+        }
+    } else if (version == 31) {
+        if (gl_has_extension("GL_ARB_compatibility")) {
+            return WAFFLE_CONTEXT_CORE_PROFILE;
+        } else {
+            return WAFFLE_CONTEXT_COMPATIBILITY_PROFILE;
+        }
+    } else {
+        return WAFFLE_NONE;
+    }
+}
+
+/// @brief Create an OpenGL >= 3.1 context.
+///
+/// If the requested profile is WAFFLE_NONE or WAFFLE_DONT_CARE and context
+/// creation succeeds, then return true.
+///
+/// If a specific profile of OpenGL 3.1 is requested, then this function tries
+/// to honor the intent of that request even though, strictly speaking, an
+/// OpenGL 3.1 context has no profile.  (See gl_get_profile() for a description
+/// of how wflinfo determines the profile of a context). If context creation
+/// succeeds but its profile is incorrect, then return false.
+///
+/// On failure, @a out_ctx and @out_config remain unmodified.
+///
+static bool
+wflinfo_try_create_context_gl31(struct waffle_display *dpy,
+                                struct wflinfo_config_attrs attrs,
+                                struct waffle_context **out_ctx,
+                                struct waffle_config **out_config,
+                                bool exit_if_ctx_creation_fails)
+{
+    struct waffle_config *config = NULL;
+    struct waffle_context *ctx = NULL;
+    bool ok;
+
+    // It's illegal to request a waffle_config with WAFFLE_CONTEXT_PROFILE
+    // != WAFFLE_NONE. Therefore, request an OpenGL 3.1 config without
+    // a profile and later verify that the desired and actual profile
+    // agree.
+    const enum waffle_enum desired_profile = attrs.profile;
+    attrs.major = 3;
+    attrs.minor = 1;
+    attrs.profile = WAFFLE_NONE;
+    wflinfo_try_create_context(dpy, attrs, &ctx, &config,
+                               exit_if_ctx_creation_fails);
+
+    if (desired_profile == WAFFLE_NONE ||
+        desired_profile == WAFFLE_DONT_CARE) {
+        goto success;
+    }
+
+    // The user cares about the profile. We must bind the context to inspect
+    // its profile.
+    //
+    // Skip window creation. No window is needed when binding an OpenGL >= 3.0
+    // context.
+    ok = waffle_make_current(dpy, NULL, ctx);
+    if (!ok) {
+        error_waffle();
+    }
+
+    const enum waffle_enum actual_profile = gl_get_profile();
+    waffle_make_current(dpy, NULL, NULL);
+    if (actual_profile == desired_profile) {
+        goto success;
+    }
+
+    return false;
+
+success:
+    *out_ctx = ctx;
+    *out_config = config;
+    return true;
+}
+
+/// Exit on failure.
+void
+wutils_create_context(struct waffle_display *dpy,
+                      struct wflinfo_config_attrs attrs,
+                      struct waffle_context **out_ctx,
+                      struct waffle_config **out_config)
+{
+    bool ok = false;
+
+    if (attrs.api == WAFFLE_CONTEXT_OPENGL &&
+        attrs.profile != WAFFLE_NONE &&
+        attrs.major == WAFFLE_DONT_CARE) {
+
+        // If the user requested OpenGL and a CORE or COMPAT profile,
+        // but they didn't specify a version, then we'll try a set
+        // of known versions from highest to lowest.
+
+        static int known_gl_profile_versions[] =
+            { 32, 33, 40, 41, 42, 43, 44 };
+
+        for (int i = ARRAY_SIZE(known_gl_profile_versions) - 1; i >= 0; i--) {
+            attrs.major = known_gl_profile_versions[i] / 10;
+            attrs.minor = known_gl_profile_versions[i] % 10;
+            ok = wflinfo_try_create_context(dpy, attrs,
+                                            out_ctx, out_config, false);
+            if (ok) {
+                return;
+            }
+        }
+
+        // Handle OpenGL 3.1 separately because profiles are weird in 3.1.
+        ok = wflinfo_try_create_context_gl31(
+                dpy, attrs, out_ctx, out_config,
+                /*exit_if_ctx_creation_fails*/ false);
+        if (ok) {
+            return;
+        }
+
+        error_printf("Wflinfo", "Failed to create context; Try choosing a "
+                     "specific context version with --version");
+    } else if (attrs.api == WAFFLE_CONTEXT_OPENGL &&
+               attrs.major == 3 &&
+               attrs.minor == 1) {
+        // The user requested a specific profile of an OpenGL 3.1 context.
+        // Strictly speaking, an OpenGL 3.1 context has no profile, but let's
+        // do what the user wants.
+        ok = wflinfo_try_create_context_gl31(
+                dpy, attrs, out_ctx, out_config,
+                /*exit_if_ctx_creation_fails*/ true);
+        if (ok) {
+            return;
+        }
+
+        printf("Wflinfo warn: Succesfully requested an OpenGL 3.1 context, but returned\n"
+               "Wflinfo warn: context had the wrong profile.  Fallback to requesting an\n"
+               "Wflinfo warn: OpenGL 3.2 context, which is guaranteed to have the correct\n"
+               "Wflinfo warn: profile if context creation succeeds.\n");
+        attrs.major = 3;
+        attrs.minor = 2;
+        assert(attrs.profile == WAFFLE_CONTEXT_CORE_PROFILE ||
+               attrs.profile == WAFFLE_CONTEXT_COMPATIBILITY_PROFILE);
+        ok = wflinfo_try_create_context(dpy, attrs, out_ctx, out_config,
+                                        /*exit_on_fail*/ false);
+        if (ok) {
+            return;
+        }
+
+        error_printf("Wflinfo", "Failed to create an OpenGL 3.1 or later "
+                     "context with requested profile");
+    } else {
+        wflinfo_try_create_context(dpy, attrs, out_ctx, out_config,
+                                  /*exit_on_fail*/ true);
+    }
 }
 
 #ifdef __APPLE__
