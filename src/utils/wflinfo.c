@@ -180,11 +180,6 @@ error_get_gl_symbol(const char *name)
 #define WINDOW_WIDTH  320
 #define WINDOW_HEIGHT 240
 
-static GLenum (*glGetError)(void);
-static void (*glGetIntegerv)(GLenum pname, GLint *params);
-static const GLubyte * (*glGetString)(GLenum name);
-static const GLubyte * (*glGetStringi)(GLenum name, GLint i);
-
 /// @brief Command line options.
 struct options {
     /// @brief One of `WAFFLE_PLATFORM_*`.

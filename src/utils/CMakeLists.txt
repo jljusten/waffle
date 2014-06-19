@@ -2,7 +2,7 @@
 # Target: wflinfo (executable)
 # ----------------------------------------------------------------------------
 
-add_executable(wflinfo wflinfo.c)
+add_executable(wflinfo wflinfo.c wutils.c)
 target_link_libraries(wflinfo ${waffle_libname})
 set_target_properties(wflinfo
     PROPERTIES

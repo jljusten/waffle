@@ -65,3 +65,8 @@ enum {
 #define GL_CONTEXT_PROFILE_MASK           0x9126
 #define GL_CONTEXT_CORE_PROFILE_BIT       0x00000001
 #define GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
+
+extern GLenum (*glGetError)(void);
+extern void (*glGetIntegerv)(GLenum pname, GLint *params);
+extern const GLubyte * (*glGetString)(GLenum name);
+extern const GLubyte * (*glGetStringi)(GLenum name, GLint i);
