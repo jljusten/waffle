@@ -45,54 +45,6 @@
 const char *wutils_utility_name = "wflinfo";
 const char *wutils_utility_Name = "Wflinfo";
 
-static const char *usage_message =
-    "Usage:\n"
-    "    wflinfo <Required Parameters> [Options]\n"
-    "\n"
-    "Description:\n"
-    "    Create an OpenGL or OpenGL ES context and print information about it.\n"
-    "\n"
-    "Required Parameters:\n"
-    "    -p, --platform\n"
-    "        One of: android, cgl, gbm, glx, wayland or x11_egl\n"
-    "\n"
-    "    -a, --api\n"
-    "        One of: gl, gles1, gles2 or gles3\n"
-    "\n"
-    "Options:\n"
-    "    -V, --version\n"
-    "        For example --api=gl --version=3.2 would request OpenGL 3.2.\n"
-    "\n"
-    "    --profile\n"
-    "        One of: core, compat or none\n"
-    "\n"
-    "    -v, --verbose\n"
-    "        Print more information.\n"
-    "\n"
-    "    --forward-compatible\n"
-    "        Create a forward-compatible context.\n"
-    "\n"
-    "    --debug-context\n"
-    "        Create a debug context.\n"
-    "\n"
-    "    -h, --help\n"
-    "        Print wflinfo usage information.\n"
-    "\n"
-    "Examples:\n"
-    "    wflinfo --platform=glx --api=gl\n"
-    "    wflinfo --platform=x11_egl --api=gl --version=3.2 --profile=core\n"
-    "    wflinfo --platform=wayland --api=gles3\n"
-    "    wflinfo --platform=gbm --api=gl --version=3.2 --verbose\n"
-    "    wflinfo -p gbm -a gl -V 3.2 -v\n"
-    ;
-
-void __attribute__((noreturn))
-write_usage_and_exit(FILE *f, int exit_code)
-{
-    fprintf(f, "%s", usage_message);
-    exit(exit_code);
-}
-
 #define WINDOW_WIDTH  320
 #define WINDOW_HEIGHT 240
 

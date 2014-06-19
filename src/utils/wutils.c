@@ -291,6 +291,56 @@ error_get_gl_symbol(const char *name)
     error_printf(wutils_utility_Name, "failed to get function pointer for %s", name);
 }
 
+static const char *usage_message =
+    "Usage:\n"
+    "    %s <Required Parameters> [Options]\n"
+    "\n"
+    "Description:\n"
+    "    Create an OpenGL or OpenGL ES context and print information about it.\n"
+    "\n"
+    "Required Parameters:\n"
+    "    -p, --platform\n"
+    "        One of: android, cgl, gbm, glx, wayland or x11_egl\n"
+    "\n"
+    "    -a, --api\n"
+    "        One of: gl, gles1, gles2 or gles3\n"
+    "\n"
+    "Options:\n"
+    "    -V, --version\n"
+    "        For example --api=gl --version=3.2 would request OpenGL 3.2.\n"
+    "\n"
+    "    --profile\n"
+    "        One of: core, compat or none\n"
+    "\n"
+    "    -v, --verbose\n"
+    "        Print more information.\n"
+    "\n"
+    "    --forward-compatible\n"
+    "        Create a forward-compatible context.\n"
+    "\n"
+    "    --debug-context\n"
+    "        Create a debug context.\n"
+    "\n"
+    "    -h, --help\n"
+    "        Print %s usage information.\n"
+    "\n"
+    "Examples:\n"
+    "    %s --platform=glx --api=gl\n"
+    "    %s --platform=x11_egl --api=gl --version=3.2 --profile=core\n"
+    "    %s --platform=wayland --api=gles3\n"
+    "    %s --platform=gbm --api=gl --version=3.2 --verbose\n"
+    "    %s -p gbm -a gl -V 3.2 -v\n"
+    ;
+
+void __attribute__((noreturn))
+write_usage_and_exit(FILE *f, int exit_code)
+{
+    fprintf(f, usage_message, wutils_utility_name, wutils_utility_name,
+            wutils_utility_name, wutils_utility_name, wutils_utility_name,
+            wutils_utility_name, wutils_utility_name);
+    exit(exit_code);
+}
+
 static bool
 strneq(const char *a, const char *b, size_t n)
 {
