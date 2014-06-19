@@ -70,3 +70,21 @@ extern GLenum (*glGetError)(void);
 extern void (*glGetIntegerv)(GLenum pname, GLint *params);
 extern const GLubyte * (*glGetString)(GLenum name);
 extern const GLubyte * (*glGetStringi)(GLenum name, GLint i);
+
+struct enum_map {
+    int i;
+    const char *s;
+};
+
+extern const struct enum_map platform_map[];
+extern const struct enum_map context_api_map[];
+
+bool
+enum_map_translate_str(
+        const struct enum_map *self,
+        const char *s,
+        int *result);
+
+const char *
+enum_map_to_str(const struct enum_map *self,
+                int val);

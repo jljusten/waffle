@@ -27,8 +27,61 @@
 /// @brief Common util definitions and functions
 
 #include "wutils.h"
+#include <string.h>
 
 GLenum (*glGetError)(void);
 void (*glGetIntegerv)(GLenum pname, GLint *params);
 const GLubyte * (*glGetString)(GLenum name);
 const GLubyte * (*glGetStringi)(GLenum name, GLint i);
+
+const struct enum_map platform_map[] = {
+    {WAFFLE_PLATFORM_ANDROID,   "android"       },
+    {WAFFLE_PLATFORM_CGL,       "cgl",          },
+    {WAFFLE_PLATFORM_GBM,       "gbm"           },
+    {WAFFLE_PLATFORM_GLX,       "glx"           },
+    {WAFFLE_PLATFORM_WAYLAND,   "wayland"       },
+    {WAFFLE_PLATFORM_X11_EGL,   "x11_egl"       },
+    {0,                         0               },
+};
+
+const struct enum_map context_api_map[] = {
+    {WAFFLE_CONTEXT_OPENGL,         "gl"        },
+    {WAFFLE_CONTEXT_OPENGL_ES1,     "gles1"     },
+    {WAFFLE_CONTEXT_OPENGL_ES2,     "gles2"     },
+    {WAFFLE_CONTEXT_OPENGL_ES3,     "gles3"     },
+    {0,                             0           },
+};
+
+/// @brief Translate string to `enum waffle_enum`.
+///
+/// @param self is a list of map items. The last item must be zero-filled.
+/// @param result is altered only if @a s if found.
+/// @return true if @a s was found in @a map.
+bool
+enum_map_translate_str(
+        const struct enum_map *self,
+        const char *s,
+        int *result)
+{
+    for (const struct enum_map *i = self; i->i != 0; ++i) {
+        if (!strncmp(s, i->s, strlen(i->s) + 1)) {
+            *result = i->i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const char *
+enum_map_to_str(const struct enum_map *self,
+                int val)
+{
+    for (const struct enum_map *i = self; i->i != 0; ++i) {
+        if (i->i == val) {
+            return i->s;
+        }
+    }
+
+    return NULL;
+}
