@@ -171,3 +171,6 @@ void
 cocoa_finish(void);
 
 #endif // __APPLE__
+
+int64_t
+elapsed_ms(void);

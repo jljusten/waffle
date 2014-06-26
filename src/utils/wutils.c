@@ -26,11 +26,14 @@
 /// @file
 /// @brief Common util definitions and functions
 
+#define _POSIX_C_SOURCE 199309L
+
 #include "wutils.h"
 #include <assert.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef __APPLE__
 #    import <Foundation/NSAutoreleasePool.h>
@@ -749,3 +752,20 @@ removeXcodeArgs(int *argc, char **argv)
 }
 
 #endif // __APPLE__
+
+static int64_t
+wutils_get_microseconds(void)
+{
+    struct timespec t;
+    int r = clock_gettime(CLOCK_MONOTONIC, &t);
+    if (r >= 0)
+        return (t.tv_sec * 1000000) + (t.tv_nsec / 1000);
+    else
+        return -1LL;
+}
+
+int64_t
+elapsed_ms(void)
+{
+    return wutils_get_microseconds() / 1000;
+}
