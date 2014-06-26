@@ -48,6 +48,10 @@ typedef int GLsizei;
 typedef unsigned int GLenum;
 typedef void GLvoid;
 typedef unsigned char GLubyte;
+typedef unsigned char GLboolean;
+typedef float GLfloat;
+typedef unsigned int GLuint;
+typedef double GLdouble;
 
 enum {
     // Copied from <GL/gl*.h>.
@@ -63,6 +67,9 @@ enum {
     GL_VERSION                             = 0x1F02,
     GL_EXTENSIONS                          = 0x1F03,
     GL_NUM_EXTENSIONS                      = 0x821D,
+
+    GL_FALSE = 0,
+    GL_TRUE = 1,
 };
 
 #define GL_MAJOR_VERSION                  0x821B
