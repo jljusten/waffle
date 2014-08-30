@@ -1,3 +1,10 @@
+waffle (1.3.90+git20140830.439f143-1) unstable; urgency=low
+
+  * Merge with master
+  * Added cmocka/cmake/Modules copyright information
+
+ -- Jordan Justen <jordan.l.justen@intel.com>  Sat, 30 Aug 2014 16:08:57 -0700
+
 waffle (1.3.90+git20140515.202edf2-1) experimental; urgency=low
 
   * Adjust version number to be based on the git commit
