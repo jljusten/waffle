@@ -45,13 +45,19 @@
 bool
 cgl_config_destroy(struct wcore_config *wc_self)
 {
+    struct cgl_config *self;
     bool ok = true;
 
     if (wc_self == NULL)
         return ok;
 
+    self = cgl_config(wc_self);
+
+    if (self->pixel_format)
+        CGLReleasePixelFormat(self->pixel_format);
+
     ok &= wcore_config_teardown(wc_self);
-    free(cgl_config(wc_self));
+    free(self);
     return ok;
 }
 
@@ -190,8 +196,8 @@ cgl_config_fill_pixel_format_attrs(
         }
         else {
             wcore_error_internal("version=%d.%d profile=%#x",
-                                 attrs->context_version_major,
-                                 attrs->context_version_minor,
+                                 attrs->context_major_version,
+                                 attrs->context_minor_version,
                                  attrs->context_profile);
             return false;
         }
@@ -236,11 +242,9 @@ cgl_config_choose(struct wcore_platform *wc_plat,
     if (!cgl_config_check_attrs(plat, attrs))
         return NULL;
 
-    self = calloc(1, sizeof(*self));
-    if (!self) {
-        wcore_error(WAFFLE_ERROR_BAD_ALLOC);
+    self = wcore_calloc(sizeof(*self));
+    if (!self)
         return NULL;
-    }
 
     ok = wcore_config_init(&self->wcore, wc_dpy, attrs);
     if (!ok)
@@ -250,6 +254,7 @@ cgl_config_choose(struct wcore_platform *wc_plat,
     if (!ok)
         goto error;
 
+    // Starting with OS X v10.5, pixel format objects are reference counted.
     error = CGLChoosePixelFormat(pixel_attrs, &self->pixel_format, &ignore);
     if (error) {
         cgl_error_failed_func("CGLChoosePixelFormat", error);

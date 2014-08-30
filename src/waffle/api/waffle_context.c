@@ -29,7 +29,7 @@
 #include "wcore_error.h"
 #include "wcore_platform.h"
 
-struct waffle_context*
+WAFFLE_API struct waffle_context*
 waffle_context_create(
         struct waffle_config *config,
         struct waffle_context *shared_ctx)
@@ -43,7 +43,7 @@ waffle_context_create(
 
     obj_list[len++] = wc_config ? &wc_config->api : NULL;
     if (wc_shared_ctx)
-        obj_list[len++] = wc_shared_ctx ? &wc_shared_ctx->api : NULL;
+        obj_list[len++] = &wc_shared_ctx->api;
 
     if (!api_check_entry(obj_list, len))
         return NULL;
@@ -54,10 +54,10 @@ waffle_context_create(
     if (!wc_self)
         return NULL;
 
-    return &wc_self->wfl;
+    return waffle_context(wc_self);
 }
 
-bool
+WAFFLE_API bool
 waffle_context_destroy(struct waffle_context *self)
 {
     struct wcore_context *wc_self = wcore_context(self);
@@ -72,7 +72,7 @@ waffle_context_destroy(struct waffle_context *self)
     return api_platform->vtbl->context.destroy(wc_self);
 }
 
-union waffle_native_context*
+WAFFLE_API union waffle_native_context*
 waffle_context_get_native(struct waffle_context *self)
 {
     struct wcore_context *wc_self = wcore_context(self);

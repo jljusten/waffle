@@ -30,12 +30,12 @@ cmake_minimum_required(VERSION 2.8)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
 include(WaffleDefineOS)
+include(WaffleFindDependencies)
 include(Options.cmake)
 include(WaffleDefineInternalOptions)
 include(WaffleValidateOptions)
 include(WaffleDefineVersion)
 include(WaffleDefineCompilerFlags)
-include(WaffleFindDependencies)
 include(GNUInstallDirs)
 
 if(waffle_build_tests)
@@ -67,6 +67,13 @@ add_custom_target(check-func
 # Add subdirectories
 # ------------------------------------------------------------------------------
 
+if(waffle_on_mac)
+    link_libraries(
+        ${COCOA_FRAMEWORK}
+        ${CORE_FOUNDATION_FRAMEWORK}
+        )
+endif()
+
 include_directories(
     include
     include/waffle
@@ -92,11 +99,17 @@ endif()
 
 configure_file(waffle.pc.in ${waffle_libname}.pc @ONLY)
 
-install(FILES ${CMAKE_BINARY_DIR}/${waffle_libname}.pc
-        DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig)
+install(
+    FILES ${CMAKE_BINARY_DIR}/${waffle_libname}.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+    COMPONENT pkgconfig
+    )
 
-install(FILES cmake/Modules/FindWaffle.cmake
-        DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/cmake/Modules")
+install(
+    FILES cmake/Modules/FindWaffle.cmake
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules"
+    COMPONENT cmakefind
+    )
 
 # ------------------------------------------------------------------------------
 
