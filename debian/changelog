@@ -1,3 +1,9 @@
+waffle (1.5.0-2) unstable; urgency=low
+
+  * Add FindWaffle.cmake to libwaffle-dev package
+
+ -- Jordan Justen <jordan.l.justen@intel.com>  Fri, 26 Dec 2014 00:49:29 -0800
+
 waffle (1.5.0-1) unstable; urgency=low
 
   * New upstream release
