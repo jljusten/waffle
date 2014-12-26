@@ -141,7 +141,7 @@ install(
 
 install(
     FILES cmake/Modules/FindWaffle.cmake
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/waffle
     COMPONENT cmakefind
     )
 
